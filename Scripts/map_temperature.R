@@ -5,12 +5,12 @@
       source("./Scripts/map_setup.R")
   
 # Read in POT and TRAWL data -----
-      pot_cpue <- read.csv("./Outputs/CPS2_2024_potcatch.csv") %>%
+      pot_cpue <- read.csv("./Data/CPS2_2024_potcatch.csv") %>%
                   dplyr::rename(HAUL = SPN,
                                 STATION = POT_ID) %>%
                   filter(!nchar(STATION) > 3) # filter out CAM, COFFIN, and BAIT POT_IDs
         
-      trawl_cpue <- read.csv("./Outputs/CPS2_2024_trawlcatch.csv")
+      trawl_cpue <- read.csv("./Data/CPS2_2024_trawlcatch.csv")
 
   # Combine pot and trawl counts into one dataframe
       cpue <- trawl_cpue %>% 
@@ -34,7 +34,7 @@
 
 # Read in bycatch data -----
     # Read in POT and TRAWL data
-      pot_bycatch <- read.csv("./Outputs/CPS2_2024_POT_bycatch.csv") %>%
+      pot_bycatch <- read.csv("./Data/CPS2_2024_POT_bycatch.csv") %>%
                      dplyr::rename(HAUL = SPN,
                                    STATION = POT_ID) %>%
                      dplyr::mutate(RockSole = 0) %>%
@@ -44,8 +44,8 @@
                                    PacificCod, Halibut, GreatSculpin, YellowfinSole, Pollock, StarryFlounder,
                                    RockSole, Other)
       
-      trawl_fish_bycatch <- read.csv("./Outputs/CPS2_2024_TRAWL_FISH_bycatch.csv") 
-      trawl_crab_bycatch <- read.csv("./Outputs/CPS2_2024_TRAWL_CRAB_bycatch.csv") 
+      trawl_fish_bycatch <- read.csv("./Data/CPS2_2024_TRAWL_FISH_bycatch.csv") 
+      trawl_crab_bycatch <- read.csv("./Data/CPS2_2024_TRAWL_CRAB_bycatch.csv") 
       
       
   # Combine crab and fish trawl bycatch into one dataframe
@@ -68,12 +68,12 @@
       
 # Read in specimen data ------
   # Read in POT and TRAWL data
-      pot_specimen <- read.csv("./Outputs/CPS2_2024_Processed_Pot_Specimen_Data.csv") %>%
+      pot_specimen <- read.csv("./Data/CPS2_2024_Processed_Pot_Specimen_Data.csv") %>%
                       dplyr::rename(HAUL = SPN,
                                     STATION = POT_ID) %>%
                       filter(!nchar(STATION) > 3) # filter out CAM, COFFIN, and BAIT POT_IDs
       
-      trawl_specimen <- read.csv("./Outputs/CPS2_2024_Processed_Trawl_Specimen_Data.csv")
+      trawl_specimen <- read.csv("./Data/CPS2_2024_Processed_Trawl_Specimen_Data.csv")
       
   # Combine pot and trawl specimen data into one dataframe
       specimen <- trawl_specimen %>% dplyr::select(-c(SPECIES_NAME)) %>%

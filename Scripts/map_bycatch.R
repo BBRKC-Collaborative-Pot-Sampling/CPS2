@@ -15,8 +15,8 @@
 
   # Read in POT and TRAWL data
     # I think I need to reframe this to make long rather than wide df...
-      pot_crab_bycatch <- read.csv("./Outputs/CPS2_2024_pot_crab_bycatch.csv") 
-      pot_fish_bycatch <- read.csv("./Outputs/CPS2_2024_pot_fish_bycatch.csv")
+      pot_crab_bycatch <- read.csv("./Data/CPS2_2024_pot_crab_bycatch.csv") 
+      pot_fish_bycatch <- read.csv("./Data/CPS2_2024_pot_fish_bycatch.csv")
 
       # pot_bycatch <- left_join(pot_crab_bycatch, pot_fish_bycatch) %>%
       #                dplyr::rename(HAUL = SPN,
@@ -26,7 +26,7 @@
       #                              MaleSnow, FemaleSnow, Snow, MaleHybrid, FemaleHybrid, Hybrid, HairCrab, 
       #                              PacificCod, Halibut, GreatSculpin, YellowfinSole, Pollock, StarryFlounder, 
       #                              RockSole, Other)
-      pot_bycatch <- read.csv("./Outputs/CPS2_2024_POT_bycatch.csv") %>%
+      pot_bycatch <- read.csv("./Data/CPS2_2024_POT_bycatch.csv") %>%
                      dplyr::rename(HAUL = SPN,
                                    STATION = BUOY) %>%
                      dplyr::mutate(RockSole = 0) %>%
@@ -37,8 +37,8 @@
                                    RockSole, Other)
 
         
-    trawl_fish_bycatch <- read.csv("./Outputs/CPS2_2024_TRAWL_FISH_bycatch.csv") 
-    trawl_crab_bycatch <- read.csv("./Outputs/CPS2_2024_TRAWL_CRAB_bycatch.csv") 
+    trawl_fish_bycatch <- read.csv("./Data/CPS2_2024_TRAWL_FISH_bycatch.csv") 
+    trawl_crab_bycatch <- read.csv("./Data/CPS2_2024_TRAWL_CRAB_bycatch.csv") 
     
     
 # MAP POT AND TRAWL BYCATCH --------------------------------------------------------------------------------------------------------

@@ -14,12 +14,12 @@
     source("./Scripts/map_setup.R")
 
   # Read in POT and TRAWL data
-    pot_cpue <- read.csv("./Outputs/CPS2_2024_potcatch.csv") %>%
+    pot_cpue <- read.csv("./Data/CPS2_2024_potcatch.csv") %>%
                 dplyr::rename(HAUL = SPN,
                               STATION = POT_ID) %>%
                 filter(!nchar(STATION) > 3) # filter out CAM, COFFIN, and BAIT POT_IDs
       
-    trawl_cpue <- read.csv("./Outputs/CPS2_2024_trawlcatch.csv")
+    trawl_cpue <- read.csv("./Data/CPS2_2024_trawlcatch.csv")
     
     
 # MAP BBRKC POT COUNT --------------------------------------------------------------------------------------------------------

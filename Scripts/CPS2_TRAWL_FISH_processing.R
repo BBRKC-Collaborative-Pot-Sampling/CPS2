@@ -91,7 +91,7 @@
                         dplyr::mutate(CALC_WEIGHT = WEIGHT*SAMPLING_FACTOR)
       
     # Save .csv
-        write.csv(specimen_table, "./Outputs/CPS2_2024_trawl_fishcatch.csv", row.names = FALSE)
+        write.csv(specimen_table, "./Data/CPS2_2024_trawl_fishcatch.csv", row.names = FALSE)
       
         
     # Reframe and aggregate calculated weights by main bycatch species (to match POT bycatch dataframe)
@@ -118,6 +118,6 @@
                       names_from = "SPP_LABS", values_from = "WEIGHT") %>%
           select(VESSEL, STATION, LAT_DD, LON_DD, PacificCod, Halibut, 
                  GreatSculpin, YellowfinSole, Pollock, StarryFlounder, RockSole, Other) %>%
-          write.csv("./Outputs/CPS2_2024_trawl_fish_bycatch.csv", row.names = FALSE)
+          write.csv("./Data/CPS2_2024_trawl_fish_bycatch.csv", row.names = FALSE)
       
   

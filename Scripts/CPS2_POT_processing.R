@@ -150,7 +150,7 @@
      # all pots
         specimen_table %>%
           rename(NOTES = NOTES.x) %>%
-          write.csv("./Outputs/CPS2_2024_Processed_Pot_Specimen_Data.csv", row.names = FALSE)
+          write.csv("./Data/CPS2_2024_Processed_Pot_Specimen_Data.csv", row.names = FALSE)
       
   # Update catch summary table with new crab #s from sampling factor
       catch_summary <- specimen_table %>%
@@ -210,7 +210,7 @@
       
   # Save .csvs
       pot_cpue %>%
-        write.csv(., "./Outputs/CPS2_2024_potcatch.csv", row.names = FALSE)
+        write.csv(., "./Data/CPS2_2024_potcatch.csv", row.names = FALSE)
       
       
 # BYCATCH --------------------------------------------------------------------------------------------------------------------
@@ -236,7 +236,7 @@
         select(VESSEL, SPN, LAT_DD, LON_DD, POT_ID, DATE_HAUL, MaleTanner, FemaleTanner, MaleSnow, FemaleSnow, 
                MaleHybrid, FemaleHybrid, Tanner, Snow, Hybrid, HairCrab,
                PacificCod, Halibut, GreatSculpin, YellowfinSole, Pollock, StarryFlounder, Other) %>%
-        write.csv(., "./Outputs/CPS2_2024_pot_bycatch.csv", row.names = FALSE)
+        write.csv(., "./Data/CPS2_2024_pot_bycatch.csv", row.names = FALSE)
       
   
 
