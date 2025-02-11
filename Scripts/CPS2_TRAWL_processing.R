@@ -18,7 +18,7 @@
 # LOAD CRAB DATA -----------------------------------------------------------------------------------------------------------------
 
   # Set trawl data filepath
-      path <- "Y:/KOD_Survey/CPS2/Data/Trawl Data/Crab/"  
+      path <- "Y:/KOD_Survey/CPS2/Trawl Data/Crab/"  
 
   # Load summary catch and specimen tables
       # **delete catch and specimen files 0015, 0019, 0021, 0022, 0028, 0030, 0031, 0040, 0053, 0064, 0068, 0088, 0128 because no crab catch
@@ -45,7 +45,7 @@
                           distinct()
   
   # Read in haul data
-      hauls <- read.csv("Y:/KOD_Survey/CPS2/Data/Trawl Data/VA_HAULS.csv") %>% # Vesteraalen
+      hauls <- read.csv("Y:/KOD_Survey/CPS2/Trawl Data/VA_HAULS.csv") %>% # Vesteraalen
                dplyr::filter(SAMPLED == 1)
     
       

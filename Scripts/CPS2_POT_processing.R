@@ -18,7 +18,7 @@
 # LOAD DATA -----------------------------------------------------------------------------------------------------------------
   
   # Set pot data filepath
-      path <- "Y:/KOD_Survey/CPS2/Data/Pot Data/"
+      path <- "Y:/KOD_Survey/CPS2/Pot Data/"
 
   # Load summary catch and specimen tables
       # **delete catch and specimen files 0021, 0022, 0023, 0056-0059, 0238, 0312-0314, 0316-0318, 0326 (AL) because no data
