@@ -105,7 +105,7 @@
     
 
   # Process specimen table with all haul data, save
-      specimen_table %>% dplyr::filter(SPECIES_CODE == 69322) %>% # filter just RKC
+      specimen_table %>% #dplyr::filter(SPECIES_CODE == 69322) %>% # filter just RKC
         write.csv("./Data/CPS2_2024_Processed_Trawl_Specimen_Data.csv", row.names = FALSE)
     
   # Update catch summary table with new crab #s from sampling factor
