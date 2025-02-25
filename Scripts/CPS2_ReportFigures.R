@@ -170,11 +170,11 @@ Fig2<- ggplot() +
                      labels = c("Bristol Bay management boundary", "Area 516", "CPS survey extent"),
                      name = "") +
   scale_fill_manual(values = c(alpha("firebrick3", 0.5), alpha("indianred1", 0.25), alpha("gold2", 0.5)),
-                    labels = c("Red King Crab Savings Area", "Red King Crab Savings Subarea", "Nearshore Bristol Bay Trawl Area"),
+                    labels = c("Red King Crab Savings Area", "Red King Crab Savings Subarea", "Northern Bristol Bay Trawl Area"),
                     name = "")+
   
   scale_pattern_type_manual(values = c("stripe", "stripe"),
-                            labels = c("Bycatch Limitation Zone 1", "Northern Bristol Bay Trawl Closure Area"),
+                            labels = c("Bycatch Limitation Zone 1", "Nearshore Bristol Bay Trawl Closure Area"),
                             name = "")+
   scale_pattern_angle_continuous(range = c(30, 120),
                                  breaks = c(30, 120),
