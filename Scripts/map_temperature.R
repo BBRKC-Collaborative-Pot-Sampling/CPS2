@@ -1809,7 +1809,7 @@
                         guides(color = guide_legend(nrow = 2)) +
                         scale_x_continuous(breaks = map_layers$lon.breaks)+
                         scale_y_continuous(breaks = map_layers$lat.breaks)+
-                        labs(title = "2023 BBRKC Collaborative Pot Sampling", subtitle = "Temperature")+
+                        labs(title = "CPS1 Temperature", subtitle = "2023")+
                         coord_sf(xlim = plot.boundary$x,
                                  ylim = plot.boundary$y) +
                         geom_sf_text(sf::st_as_sf(data.frame(lab= c("50m", "100m"), 
@@ -1827,7 +1827,7 @@
                               plot.title = element_text(face = "bold", size = 15),
                               plot.subtitle = element_text(size = 12))
                       
-                      ggsave(plot = temp.scaled.cps1, "./Figures/CPS1_scaled_temp.png", height = 7, width = 10, units = "in")
+                      #ggsave(plot = temp.scaled.cps1, "./Figures/CPS1_scaled_temp.png", height = 7, width = 10, units = "in")
         
         
         # CPS2 BBRKC mature female with temperature -------      
@@ -1855,7 +1855,7 @@
                             guides(color = guide_legend(nrow = 2)) +
                             scale_x_continuous(breaks = map_layers$lon.breaks)+
                             scale_y_continuous(breaks = map_layers$lat.breaks)+
-                            labs(title = "2024 BBRKC Collaborative Pot Sampling", subtitle = "Temperature")+
+                            labs(title = "CPS2 Temperature", subtitle = "2024")+
                             coord_sf(xlim = plot.boundary$x,
                                      ylim = plot.boundary$y) +
                             geom_sf_text(sf::st_as_sf(data.frame(lab= c("50m", "100m"), 
@@ -1873,7 +1873,61 @@
                                   plot.title = element_text(face = "bold", size = 15),
                                   plot.subtitle = element_text(size = 12))
         
-        ggsave(plot = temp.scaled.cps2, "./Figures/CPS2_scaled_temp.png", height = 7, width = 10, units = "in")
+        #ggsave(plot = temp.scaled.cps2, "./Figures/CPS2_scaled_temp.png", height = 7, width = 10, units = "in")
         
-      
-      
+# === Combo Temp dfs
+        
+# Add Year column
+CPS1_temp_df <- CPS1_temp_df %>% mutate(Year = "2023")
+temp_df <- temp_df %>% mutate(Year = "2024")
+        
+# Combine datasets
+temp_combined <- bind_rows(CPS1_temp_df, temp_df)
+        
+# Plot
+temp_plot <- ggplot() +
+          # Plot temperature
+          geom_tile(data = temp_combined, aes(x = x, y = y, fill = temperature, alpha = 1)) +
+          scale_fill_viridis(name = "Temperature (°C)", option = "plasma", alpha = 1,
+                             guide = guide_colorbar(title.position = "top", discrete = FALSE),
+                             limits = range(temp_combined$temperature, na.rm = TRUE)) +
+          guides(alpha = "none") +
+          new_scale("fill") +
+          
+          # Plot mapping layers
+          geom_sf(data = st_transform(map_layers$bathymetry, map.crs), color = alpha("grey70")) +
+          geom_sf(data = st_as_sf(CPS1_bound), fill = NA, aes(color = "black"), linewidth = 1) +
+          geom_sf(data = st_as_sf(RKCSA_sub), fill = NA, aes(color = "red"), alpha = 0.9, linewidth = 1) +
+          geom_sf(data = st_as_sf(RKCSA), fill = NA, color = "red", alpha = 0.5, linewidth = 1) +
+          geom_sf(data = st_transform(map_layers$akland, map.crs), fill = "grey80") +
+          scale_color_manual(values = c("black", "red"), 
+                             labels = c("CPS Survey Boundary", "Red King Crab Savings Area"),
+                             name = "") +
+          guides(color = guide_legend(nrow = 2)) +
+          
+          scale_x_continuous(breaks = map_layers$lon.breaks) +
+          scale_y_continuous(breaks = map_layers$lat.breaks) +
+          
+          labs(title = "Winter Temperature Comparison", subtitle = "CPS1 vs CPS2") +
+          coord_sf(xlim = plot.boundary$x, ylim = plot.boundary$y) +
+          
+          # Facet by Year
+          facet_wrap(~Year) +
+          
+          geom_sf_text(sf::st_as_sf(data.frame(lab= c("50m", "100m"), 
+                                               x = c(-161.5, -165), y = c(58.3, 56.1)),
+                                    coords = c(x = "x", y = "y"), crs = sf::st_crs(4326)) %>%
+                         sf::st_transform(crs = map.crs),
+                       mapping = aes(label = lab)) +
+          
+          theme_bw() +
+          theme(axis.title = element_blank(),
+                axis.text = element_text(size = 10),
+                legend.text = element_text(size = 10),
+                legend.title = element_text(size = 10),
+                legend.position = "bottom",
+                legend.direction = "horizontal",
+                plot.title = element_text(face = "bold", size = 15),
+                plot.subtitle = element_text(size = 12))
+    
+ggsave(plot = temp_plot, here("Figures_Report/Fig16b.png"), height = 7, width = 10, units = "in")
