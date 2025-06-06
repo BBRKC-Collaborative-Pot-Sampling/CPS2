@@ -23,6 +23,8 @@ library(sf)
 library(viridis)
 library(shadowtext) # for geom_shadowtext
 library(patchwork)
+library(rgdal)
+library(automap)
 #This script has dependencies from scripts provided by NOAA
 
 ## Source plot function scripts 
@@ -400,7 +402,7 @@ Fig3a <- ggplot() +
         plot.subtitle = element_text(size = 12),
         panel.grid.major = element_blank())
 
-ggsave(plot = Fig3a, "./Figures_Report/Fig3a.png", height=7, width=10, units="in")
+#ggsave(plot = Fig3a, "./Figures_Report/Fig3a.png", height=7, width=10, units="in")
 
 # Fig 15: Soak Time Distribution ===========
 
@@ -1399,7 +1401,7 @@ total.map <-  ggplot() +
 
 ggsave(plot = total.map, "./Figures_Report//Fig23.png", height = 7, width = 10, units = "in")
 
-# Figs 24-29. RKC distributions placed on temperature surfaces, in 3-panel format =========
+# Figs 24-28. RKC distributions placed on temperature surfaces, in 3-panel format =========
         #(CPS1, CPS2, 2024 summer trawl), by demographic: 24) legal males; 
                                                         # 25) mature-size males; 
                                                         # 26) immature-sized males; 
@@ -1410,9 +1412,8 @@ ggsave(plot = total.map, "./Figures_Report//Fig23.png", height = 7, width = 10, 
 # This code is from TechReport_2023_processing.R
 # I've put the necessary functions here and used a wrapper to create the above figures
 
-# The original function for these figures is on line 433. 
+# The original function for NOAA figures is on line 433. 
 
-# NOAA Plots First
 # 2023
 krigTemp_CPUE_2023_MM<-temp_map_ebs_nbs(NMFS_Hauls, 2023, cpue_data = RKC_EBS, mat_sex = "Mature Male")
 krigTemp_CPUE_2023_LM<-temp_map_ebs_nbs(NMFS_Hauls, 2023, cpue_data = RKC_EBS, mat_sex = "Legal Male")
@@ -1753,28 +1754,400 @@ make_4panel_plot <- function(p1, p2, p3, p4, title = NULL) {
 }
 
 MM<-make_4panel_plot(krigTemp_CPUE_2023_MM, krigTemp_CPUE_2024_MM, Temp_Count_CPS1_MM, Temp_Count_CPS2_MM, title = "Mature Males")
-ggsave("Figures_Report/Fig25.png", plot = MM, width = 15, height = 10, dpi = 300)
+#ggsave("Figures_Report/Fig25.png", plot = MM, width = 15, height = 10, dpi = 300)
 
 LM<-make_4panel_plot(krigTemp_CPUE_2023_LM, krigTemp_CPUE_2024_LM, Temp_Count_CPS1_LM, Temp_Count_CPS2_LM, title = "Legal Males")
-ggsave("Figures_Report/Fig24.png", plot = LM, width = 15, height = 10, dpi = 300)
+#ggsave("Figures_Report/Fig24.png", plot = LM, width = 15, height = 10, dpi = 300)
 
 IM<-make_4panel_plot(krigTemp_CPUE_2023_IM, krigTemp_CPUE_2024_IM, Temp_Count_CPS1_IM, Temp_Count_CPS2_IM, title = "Immature Males")
-ggsave("Figures_Report/Fig26.png", plot = IM, width = 15, height = 10, dpi = 300)
+#ggsave("Figures_Report/Fig26.png", plot = IM, width = 15, height = 10, dpi = 300)
 
 MF<-make_4panel_plot(krigTemp_CPUE_2023_MF, krigTemp_CPUE_2024_MF, Temp_Count_CPS1_MF, Temp_Count_CPS2_MF, title = "Mature Females")
-ggsave("Figures_Report/Fig27.png", plot = MF, width = 15, height = 10, dpi = 300)
+#ggsave("Figures_Report/Fig27.png", plot = MF, width = 15, height = 10, dpi = 300)
 
 IF<-make_4panel_plot(krigTemp_CPUE_2023_IF, krigTemp_CPUE_2024_IF, Temp_Count_CPS1_IF, Temp_Count_CPS2_IF, title = "Immature Females")
-ggsave("Figures_Report/Fig28.png", plot = IF, width = 15, height = 10, dpi = 300)
+#ggsave("Figures_Report/Fig28.png", plot = IF, width = 15, height = 10, dpi = 300)
 
-# Fig 30.  (RKC geographic centers of distribution (no temperatures), by demographic ==============
+# Fig 29.  (RKC geographic centers of distribution (no temperatures), by demographic ==============
           # 6 panels = legal males; sublegal males; mature-size males; immature-sized males; mature females; immature females.
           # Each panel contains 5 points = 2022 summer trawl, CPS1, 2023 summer trawl, CPS2, 2024 summer trawl.
           # I have computed CPS values and will endeavor to do the trawl-survey points, as well (noting that the latter will compute summer values only for the stations within the CPS footprint)
 
+# First, a function to calculate the geographic centers 
 
 
-# Fig 31-35. Bycatch distributions on temperature surfaces, single-panle by species ==========
+get_geographic_center <- function(data, 
+                                  is_sf = FALSE, 
+                                  years, 
+                                  mat_sex, 
+                                  source_lab) {
+  
+  if (is_sf == TRUE) { #if data object is a sf, filter directly
+    data_sf <- data
+    
+  if (!is.null(mat_sex)) {
+      data_sf <- data_sf %>% 
+        filter(MAT_SEX == mat_sex)
+    }  
+    
+    # Only keep tows where COUNT > 0
+    data_sf <- data_sf %>%
+      filter(COUNT > 0)
+    
+    # Extract coordinates from existing geometry
+    data_sf <- data_sf %>%
+      st_transform(crs = 4326) %>%
+      mutate(
+        X = st_coordinates(.)[,1],
+        Y = st_coordinates(.)[,2]
+      )
+    
+  } else {
+    # 1. Prep filtered specimen data
+    nmfs_filtered <- data$specimen %>%
+      filter(YEAR %in% years,
+             REGION == "EBS",
+             DISTRICT == "BB",
+             SPECIES == "RKC") %>%
+      mutate(
+        legal = SEX == 1 & SIZE_1MM >= 135,
+        mature = (SEX == 1 & SIZE_1MM >= 120) | (SEX == 2 & SIZE_1MM >= 90),
+        immature = (SEX == 1 & SIZE_1MM < 120) | (SEX == 2 & SIZE_1MM < 90)
+      ) %>%
+      mutate(
+        MAT_SEX_LIST = case_when(
+          legal ~ list(c("Mature Male", "Legal Male")),
+          mature & SEX == 1 & SIZE_1MM < 135 ~ list("Mature Male"),
+          immature & SEX == 1 ~ list("Immature Male"),
+          mature & SEX == 2 ~ list("Mature Female"),
+          immature & SEX == 2 ~ list("Immature Female"),
+          TRUE ~ list(NA_character_)
+        )
+      ) %>%
+      unnest(MAT_SEX_LIST) %>%
+      rename(MAT_SEX = MAT_SEX_LIST) %>%
+      filter(!is.na(MAT_SEX))
+    
+    # 2. Summarize crab counts per haul
+    crab_counts <- nmfs_filtered %>%
+      group_by(HAULJOIN, MAT_SEX) %>%
+      summarise(TOTAL = sum(SAMPLING_FACTOR), .groups = "drop")
+    
+    haul_info <- data$haul %>%
+      dplyr::select(HAULJOIN, STATION_ID, AREA_SWEPT, MID_LATITUDE, MID_LONGITUDE)
+    
+    cpue_summary <- crab_counts %>%
+      left_join(haul_info, by = "HAULJOIN") %>%
+      mutate(CPUE = (TOTAL / AREA_SWEPT))
+    
+    cpue_station <- cpue_summary %>%
+      group_by(STATION_ID, MAT_SEX) %>%
+      summarise(CPUE = mean(CPUE), .groups = "drop")
+    
+    all_hauls <- read.csv("C:/GitHub/CPS1/Data/haul_newtimeseries.csv")
+    
+    BB_Stations <- all_hauls %>%
+      filter(SURVEY_YEAR %in% 2023, 
+             HAUL_TYPE != 17) %>%
+      group_by(STATIONID) %>%
+      summarise(
+        MID_LATITUDE = first(MID_LATITUDE),
+        MID_LONGITUDE = first(MID_LONGITUDE),
+        AREA_SWEPT = mean(DISTANCE_FISHED * NET_WIDTH / 10, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      rename(STATION_ID = STATIONID)
+    
+    # 3. Create all station × sex combos
+    mat_sex_combos <- unique(nmfs_filtered$MAT_SEX)
+    
+    full_station_combos <- expand_grid(
+      STATION_ID = BB_Stations$STATION_ID,
+      MAT_SEX = mat_sex_combos
+    ) %>%
+      left_join(cpue_station, by = c("STATION_ID", "MAT_SEX")) %>%
+      left_join(BB_Stations %>% dplyr::select(STATION_ID, MID_LATITUDE, MID_LONGITUDE),
+                by = "STATION_ID") %>%
+      mutate(CPUE = replace_na(CPUE, 0))#,
+      #       zero_cpue = CPUE == 0)
+    
+    # 4. Filter CPUE to the relevant MAT_SEX group
+    
+    if (!is.null(mat_sex)) {
+      cpue_filtered  <- full_station_combos %>%
+        filter(MAT_SEX == mat_sex)
+    } else {
+      cpue_filtered  <- full_station_combos
+    }
+    
+    
+    # rename filtered object for consistency
+    cpue_filtered <- cpue_filtered %>%
+      rename(COUNT = CPUE)
+    
+    cpue_positive <- cpue_filtered %>%
+      filter(COUNT > 0)
+    
+    # 5. Create spatial object with filtered data
+    data_sf <- cpue_positive %>%
+      st_as_sf(coords = c("MID_LONGITUDE", "MID_LATITUDE"), crs = 4326) %>%
+      st_transform(crs = map.crs) %>%
+      mutate(
+        X = st_coordinates(.)[,1],
+        Y = st_coordinates(.)[,2])
+  }
+  
+  # Final non-spatial table for weighted centroid
+  data_tbl <- data_sf %>%
+    st_drop_geometry()
+  
+  center <- data_tbl %>%
+    summarise(
+      X_center = weighted.mean(X, COUNT, na.rm = TRUE),
+      Y_center = weighted.mean(Y, COUNT, na.rm = TRUE)
+    ) %>%
+    st_as_sf(coords = c("X_center", "Y_center"), crs = st_crs(data_sf)) %>%
+    mutate(Source = source_lab,
+           MAT_SEX = ifelse(is.null(mat_sex), "All", mat_sex))
+  
+  
+  message("Center coords: ", st_coordinates(center)[1], ", ", st_coordinates(center)[2])
+  return(center)
+}
+
+# Labels 
+MM_lab<-paste("", "Mature", "\nMales")
+LM_lab<-paste("", "Legal", "\nMales")
+IM_lab<-paste("", "Immature", "\nMales")
+MF_lab<-paste("", "Mature", "\nFemales")
+IF_lab<-paste("", "Immature", "\nFemales")
+Tot_lab<-paste("", "Total", "\nRKC")
+
+plot_centers <- function(c1, c2, c3, c4, lable = "test", legend = FALSE){
+  
+  
+  # Create year label
+  sf::st_as_sf(data.frame(lab= lable, 
+                          x = c(-159.5), y = c(55.2)),
+               coords = c(x = "x", y = "y"), crs = sf::st_crs(4326)) %>%
+    sf::st_transform(crs = map.crs) %>%
+    cbind(years, st_coordinates(.)) -> mat_lab
+  
+  if(legend == TRUE){
+    # Plot
+    ggplot() +
+      # Base map and bathy
+      geom_sf(data = st_as_sf(CPS1_bound), fill = NA, color = "black", linewidth = 1) +
+      geom_sf(data = st_transform(map_layers$bathymetry, map.crs), color = alpha("grey70")) +
+      geom_sf(data = st_transform(map_layers$akland, map.crs), fill = "grey80") +
+      
+      # Filled & outlined geographic center points
+      geom_sf(data = c1, aes(fill = "NMFS 2024"), size = 4, shape = 24, color = "black", alpha = 0.6) +
+      geom_sf(data = c2, aes(fill = "CPS2"), size = 4, shape = 21, color = "black", alpha = 0.6) +
+      geom_sf(data = c3, aes(fill = "NMFS 2023"), size = 4, shape = 24, color = "black", alpha = 0.6) +
+      geom_sf(data = c4, aes(fill = "CPS1"), size = 4, shape = 21, color = "black", alpha = 0.6) +
+      
+      # Depth contour labels
+      geom_sf_text(sf::st_as_sf(data.frame(lab = c("50m", "100m"), 
+                                           x = c(-161.5, -165), y = c(58.3, 56.1)),
+                                coords = c(x = "x", y = "y"), crs = sf::st_crs(4326)) %>%
+                     sf::st_transform(crs = map.crs),
+                   mapping = aes(label = lab)) +
+      geom_shadowtext(data = st_drop_geometry(mat_lab),
+                      aes(x = X, y = Y, label = lab),
+                      size = 8, color = "black", bg.color = "white", inherit.aes = FALSE)+
+      # Axes and theme
+      scale_x_continuous(breaks = c(-165, -160), labels = paste0(c(165, 160), "°W")) +
+      scale_y_continuous(breaks = c(56, 58), labels = paste0(c(56, 58), "°N")) +
+      coord_sf(xlim = plot.boundary$x, ylim = plot.boundary$y) +
+      
+      # Legend for fills (not color)
+      scale_fill_manual(
+        values = c(
+          "CPS1" = "#9ecae1",
+          "CPS2" = "#08519c",
+          "NMFS 2023" = "#fdd0a2",
+          "NMFS 2024" = "#d94801"),
+        name = "Survey Source") +
+      
+      theme_bw() +
+      theme(axis.title = element_blank(),
+            axis.text = element_text(size = 15),
+            legend.key.width = unit(4, "mm"),
+            legend.position = "right",
+            legend.direction = "vertical",
+            plot.title = element_text(face = "bold", size = 15),
+            plot.subtitle = element_text(size = 12)) -> map
+  }else{
+    ggplot() +
+      # Base map and bathy
+      geom_sf(data = st_as_sf(CPS1_bound), fill = NA, color = "black", linewidth = 1) +
+      geom_sf(data = st_transform(map_layers$bathymetry, map.crs), color = alpha("grey70")) +
+      geom_sf(data = st_transform(map_layers$akland, map.crs), fill = "grey80") +
+      
+      # Filled & outlined geographic center points
+      geom_sf(data = c1, aes(fill = "NMFS 2024"), size = 4, shape = 24, color = "black", alpha = 0.6) +
+      geom_sf(data = c2, aes(fill = "CPS2"), size = 4, shape = 21, color = "black", alpha = 0.6) +
+      geom_sf(data = c3, aes(fill = "NMFS 2023"), size = 4, shape = 24, color = "black", alpha = 0.6) +
+      geom_sf(data = c4, aes(fill = "CPS1"), size = 4, shape = 21, color = "black", alpha = 0.6) +
+      
+      # Depth contour labels
+      geom_sf_text(sf::st_as_sf(data.frame(lab = c("50m", "100m"), 
+                                           x = c(-161.5, -165), y = c(58.3, 56.1)),
+                                coords = c(x = "x", y = "y"), crs = sf::st_crs(4326)) %>%
+                     sf::st_transform(crs = map.crs),
+                   mapping = aes(label = lab)) +
+      geom_shadowtext(data = st_drop_geometry(mat_lab),
+                      aes(x = X, y = Y, label = lab),
+                      size = 8, color = "black", bg.color = "white", inherit.aes = FALSE)+
+      # Axes and theme
+      scale_x_continuous(breaks = c(-165, -160), labels = paste0(c(165, 160), "°W")) +
+      scale_y_continuous(breaks = c(56, 58), labels = paste0(c(56, 58), "°N")) +
+      coord_sf(xlim = plot.boundary$x, ylim = plot.boundary$y) +
+      
+      # Legend for fills (not color)
+      scale_fill_manual(
+        values = c(
+          "CPS1" = "#9ecae1",
+          "CPS2" = "#08519c",
+          "NMFS 2023" = "#fdd0a2",
+          "NMFS 2024" = "#d94801"),
+        name = "Survey Source") +
+      
+      theme_bw() +
+      theme(axis.title = element_blank(),
+            axis.text = element_text(size = 15),
+            legend.key.width = unit(4, "mm"),
+            legend.position = "none",
+            legend.direction = "vertical",
+            plot.title = element_text(face = "bold", size = 15),
+            plot.subtitle = element_text(size = 12)) -> map
+  }
+  
+  return(map)
+}
+
+
+# Find Centers 
+
+# Mature Males
+MM_NMFS_2024<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2024, mat_sex = "Mature Male", source_lab = "NMFS 2024")
+MM_CPS2<-get_geographic_center(data=cpue_mapdat, is_sf = TRUE ,years = 2024, mat_sex = "Mature male", source_lab = "CPS2")
+MM_NMFS_2023<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2023, mat_sex = "Mature Male", source_lab = "NMFS 2023")
+MM_CPS1<-get_geographic_center(data=CPS1_COUNTS, is_sf = TRUE ,years = 2023, mat_sex = "Mature male", source_lab = "CPS1")
+
+# Legal Males
+LM_NMFS_2024<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2024, mat_sex = "Legal Male", source_lab = "NMFS 2024")
+LM_CPS2<-get_geographic_center(data=cpue_mapdat, is_sf = TRUE ,years = 2024, mat_sex = "Legal male", source_lab = "CPS2")
+LM_NMFS_2023<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2023, mat_sex = "Legal Male", source_lab = "NMFS 2023")
+LM_CPS1<-get_geographic_center(data=CPS1_COUNTS, is_sf = TRUE ,years = 2023, mat_sex = "Legal male", source_lab = "CPS1")
+
+# Immature Males 
+IM_NMFS_2024<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2024, mat_sex = "Immature Male", source_lab = "NMFS 2024")
+IM_CPS2<-get_geographic_center(data=cpue_mapdat, is_sf = TRUE ,years = 2024, mat_sex = "Immature male", source_lab = "CPS2")
+IM_NMFS_2023<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2023, mat_sex = "Immature Male", source_lab = "NMFS 2023")
+IM_CPS1<-get_geographic_center(data=CPS1_COUNTS, is_sf = TRUE ,years = 2023, mat_sex = "Immature male", source_lab = "CPS1")
+
+# Mature Females 
+MF_NMFS_2024<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2024, mat_sex = "Mature Female", source_lab = "NMFS 2024")
+MF_CPS2<-get_geographic_center(data=cpue_mapdat, is_sf = TRUE ,years = 2024, mat_sex = "Mature female", source_lab = "CPS2")
+MF_NMFS_2023<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2023, mat_sex = "Mature Female", source_lab = "NMFS 2023")
+MF_CPS1<-get_geographic_center(data=CPS1_COUNTS, is_sf = TRUE ,years = 2023, mat_sex = "Mature female", source_lab = "CPS1")
+
+# Immature Females
+IF_NMFS_2024<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2024, mat_sex = "Immature Female", source_lab = "NMFS 2024")
+IF_CPS2<-get_geographic_center(data=cpue_mapdat, is_sf = TRUE ,years = 2024, mat_sex = "Immature female", source_lab = "CPS2")
+IF_NMFS_2023<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2023, mat_sex = "Immature Female", source_lab = "NMFS 2023")
+IF_CPS1<-get_geographic_center(data=CPS1_COUNTS, is_sf = TRUE ,years = 2023, mat_sex = "Immature female", source_lab = "CPS1")
+
+# Total 
+T_NMFS_2024<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2024, mat_sex = NULL, source_lab = "NMFS 2024")
+T_CPS2<-get_geographic_center(data=cpue_mapdat, is_sf = TRUE ,years = 2024, mat_sex = NULL, source_lab = "CPS2")
+T_NMFS_2023<-get_geographic_center(data=RKC_EBS, is_sf = FALSE,years = 2023, mat_sex = NULL, source_lab = "NMFS 2023")
+T_CPS1<-get_geographic_center(data=CPS1_COUNTS, is_sf = TRUE ,years = 2023, mat_sex = NULL, source_lab = "CPS1")
+
+
+# Make Plots 
+
+MM_GC<-plot_centers(MM_NMFS_2024, MM_CPS2, MM_NMFS_2023, MM_CPS1, lable = MM_lab)
+LM_GC<-plot_centers(LM_NMFS_2024, LM_CPS2, LM_NMFS_2023, LM_CPS1, lable = LM_lab)
+IM_GC<-plot_centers(IM_NMFS_2024, IM_CPS2, IM_NMFS_2023, IM_CPS1, lable = IM_lab)
+MF_GC<-plot_centers(MF_NMFS_2024, MF_CPS2, MF_NMFS_2023, MF_CPS1, lable = MF_lab)
+IF_GC<-plot_centers(IF_NMFS_2024, IF_CPS2, IF_NMFS_2023, IF_CPS1, lable = IF_lab)
+T_GC<-plot_centers(T_NMFS_2024, T_CPS2, T_NMFS_2023, T_CPS1, lable = Tot_lab, legend = TRUE)
+
+plot_6panel <- function(p1, p2, p3, p4, p5, p6, title = NULL){
+  
+  top_row <- p1 + p2 + p3 + 
+  plot_layout(ncol = 3)
+
+# Combine CPS plots with an empty spacer to help center them
+bottom_row <- p4 + p5 + p6 +
+  plot_layout(ncol = 3)
+
+# Stack top and bottom
+final_layout <- top_row / bottom_row + 
+  plot_layout(heights = c(1, 1)) +
+  plot_annotation(
+    title = title,
+    theme = theme(
+      plot.title = element_text(size = 18, face = "bold", hjust = 0.5)))
+
+return(final_layout)
+}
+
+Centroid<-plot_6panel(MM_GC, LM_GC, IM_GC, MF_GC, IF_GC, T_GC, title = "Geographic Centers of Distribution" )
+
+ggsave("Figures_Report/Fig29.png", plot = Centroid, width = 15, height = 10, dpi = 300)
+# testplot <- ggplot() +
+#   # Base map and bathy
+#   geom_sf(data = st_as_sf(CPS1_bound), fill = NA, color = "black", linewidth = 1) +
+#   geom_sf(data = CPS1_bathy, color = alpha("grey")) +
+#   geom_sf(data = st_transform(map_layers$akland, map.crs), fill = "grey80") +
+#   
+#   # Only the geographic centers
+#   geom_sf(data = test, aes(color = "NMFS 2024"), size = 3) +
+#   geom_sf(data = test2, aes(color = "CPS2"), size = 3, shape = 17) +
+#   geom_sf(data = test3, aes(color = "NMFS 2023"), size = 3, shape = 16) +
+#   geom_sf(data = test4, aes(color = "CPS1"), size = 3, shape = 15) +
+#   # Shadow text labels
+#   geom_shadowtext(data = test %>% mutate(X = st_coordinates(.)[,1],
+#                                          Y = st_coordinates(.)[,2]),
+#                   aes(x = X, y = Y, label = MAT_SEX),
+#                   color = "black", bg.color = "white", size = 3.5) +
+#   geom_shadowtext(data = test2 %>% mutate(X = st_coordinates(.)[,1],
+#                                           Y = st_coordinates(.)[,2]),
+#                   aes(x = X, y = Y, label = MAT_SEX),
+#                   color = "black", bg.color = "white", size = 3.5) +
+#   
+#   # Depth contour labels
+#   geom_shadowtext(data = sf::st_as_sf(data.frame(
+#     lab = c("35m", "45m", "55m", "65m", "75m", "85m"),
+#     x = c(-160.6, -161.6, -161.6, -161.2, -163.5, -163.6),
+#     y = c(56.1, 56, 57.5, 57.2, 56.76, 56.38)),
+#     coords = c("x", "y"), crs = 4326) %>%
+#       sf::st_transform(crs = map.crs) %>%
+#       cbind(st_coordinates(.)),
+#     aes(label = lab, x = X, y = Y),
+#     color = "black", bg.color = "white", size = 3.5) +
+#   
+#   # Axes and theme
+#   scale_x_continuous(breaks = c(-165, -160), labels = paste0(c(165, 160), "°W")) +
+#   scale_y_continuous(breaks = c(56, 58), labels = paste0(c(56, 58), "°N")) +
+#   coord_sf(xlim = plot.boundary$x, ylim = plot.boundary$y) +
+#   scale_color_manual(values = c("Test 1" = "red", "Test 2" = "blue"), name = "Center Points") +
+#   theme_bw() +
+#   theme(axis.title = element_blank(),
+#         axis.text = element_text(size = 15),
+#         legend.key.width = unit(4, "mm"),
+#         legend.position = "right",
+#         legend.direction = "vertical",
+#         plot.title = element_text(face = "bold", size = 15),
+#         plot.subtitle = element_text(size = 12))
+
+
+# Fig 30-34. Bycatch distributions on temperature surfaces, single-panle by species ==========
   #31) Tanners; 32) opies; 33) cod; 34) yellowfin sole; 35) rock sole.)))
-# Fig. 36, perhaps? Length-frequency distributions for RKC captured in the two bait experiments====
+# Fig. 35, perhaps? Length-frequency distributions for RKC captured in the two bait experiments====
     # 2-panel = hanging bait; bait bags.
+
